@@ -1,6 +1,10 @@
+[build]
+  functions = "netlify/functions"
+  
 [functions]
   external_node_modules = ["express","@sparticuz/chromium"]
   node_bundler = "esbuild"
+  
 [[redirects]]
   force = true
   from = "/api/*"
