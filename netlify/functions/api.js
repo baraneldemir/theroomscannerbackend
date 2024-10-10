@@ -1,10 +1,11 @@
-import "dotenv/config";
-import express, { Router } from "express";
-import cors from "cors";
-import bodyParser from "body-parser";
-import puppeteer from "puppeteer-core";
-import serverless from "serverless-http";
-import chromium from "chrome-aws-lambda";
+
+const express = require("express");
+const { Router } = require("express");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+const chromium = require('chrome-aws-lambda');
+const puppeteer = require("puppeteer-core");
+const serverless = require("serverless-http");
 
 const api = express();
 const router = Router();
@@ -18,8 +19,8 @@ const scrapeImages = async (location, maxPages = 3) => {
     try {
         const isLocal = !process.env.AWS_LAMBDA_FUNCTION_NAME;
         const executablePath = isLocal
-            ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' // Local path
-            : await chromium.executablePath; // Serverless path
+            ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
+            : await chromium.executablePath;
 
         const browser = await puppeteer.launch({
             headless: true,
