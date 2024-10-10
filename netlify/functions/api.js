@@ -14,7 +14,7 @@ const port = process.env.PORT || 4000;
 
 const router = Router()
 
-const scrapeImages = async (location, maxPages = 1) => {
+const scrapeImages = async (location, maxPages = 2) => {
     const results = { images: [], prices: [], titles: [] };
 
     try {
@@ -69,7 +69,7 @@ const scrapeImages = async (location, maxPages = 1) => {
 router.get('/scrape-images/:location', async (req, res) => {
     try {
         const { location } = req.params;
-        const maxPages = parseInt(req.query.pages, 1) || 1;  // Number of pages to scrape, default to 3
+        const maxPages = parseInt(req.query.pages, 2) || 2;  // Number of pages to scrape, default to 3
 
         console.log(`Scraping images for: ${location} up to page ${maxPages}`);
 

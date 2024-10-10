@@ -11,7 +11,7 @@ app.use(bodyParser.json());
 
 const port = process.env.PORT || 4000;
 
-const scrapeImages = async (location, maxPages = 10) => {
+const scrapeImages = async (location, maxPages = 1) => {
     const results = { images: [], prices: [], titles: [] };
 
     try {
@@ -66,7 +66,7 @@ const scrapeImages = async (location, maxPages = 10) => {
 app.get('/scrape-images/:location', async (req, res) => {
     try {
         const { location } = req.params;
-        const maxPages = parseInt(req.query.pages, 10) || 10;  // Number of pages to scrape, default to 3
+        const maxPages = parseInt(req.query.pages, 1) || 1;  // Number of pages to scrape, default to 3
 
         console.log(`Scraping images for: ${location} up to page ${maxPages}`);
 
