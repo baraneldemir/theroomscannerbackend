@@ -79,6 +79,7 @@ const router = Router()
 //     }
 // };
 
+
 router.get('/scrape-images/:location', async (req, res) => {
     try {
         const { location } = req.params;
