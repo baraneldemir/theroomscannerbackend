@@ -1,6 +1,7 @@
 [functions]
   external_node_modules = ["express"]
   node_bundler = "esbuild"
+  external_node_modules = ["@sparticuz/chromium"]
 [[redirects]]
   force = true
   from = "/api/*"
