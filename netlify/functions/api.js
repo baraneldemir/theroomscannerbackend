@@ -9,7 +9,7 @@ const api = express();
 api.use(cors());
 api.use(bodyParser.json());
 
-const port = process.env.PORT || 4000;
+
 
 const router = Router()
 
