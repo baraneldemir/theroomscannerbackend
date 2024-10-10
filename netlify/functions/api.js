@@ -1,9 +1,9 @@
-const express = require('express');
-const Router = require('express');
-const cors = require('cors');
-const bodyParser = require('body-parser');
-const puppeteer = require('puppeteer');
-const serverless = require('serverless-http');
+import "dotenv/config";
+import express, { Router } from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import puppeteer from "puppeteer";
+import serverless from "serverless-http"
 
 const api = express();
 
@@ -14,14 +14,16 @@ const port = process.env.PORT || 4000;
 
 const router = Router()
 
-const scrapeImages = async (location, maxPages = 2) => {
+const scrapeImages = async (location, maxPages = 3) => {
     const results = { images: [], prices: [], titles: [] };
 
     try {
         const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
 
-        for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+        let pageNum = 1;
+
+        while (pageNum <= maxPages) {
             const searchURL = `https://www.spareroom.co.uk/flatshare/${location}/page${pageNum}`;
             console.log(`Scraping: ${searchURL}`);
             await page.goto(searchURL, { waitUntil: 'networkidle2' });
@@ -54,8 +56,19 @@ const scrapeImages = async (location, maxPages = 2) => {
                 results.titles.push(listing.title);
             });
 
-            // Optional: Log number of listings found on the current page
-            console.log(`Found ${data.length} listings on page ${pageNum}`);
+            // Check if the "Next" button exists on the page
+            const nextPageExists = await page.evaluate(() => {
+                const nextButton = document.querySelector('.paginate .nextLink');
+                return nextButton && !nextButton.classList.contains('disabled');
+            });
+
+            if (!nextPageExists) {
+                console.log('No more pages available.');
+                break; // Exit the loop if there's no next page
+            }
+
+            console.log(`Moving to page ${pageNum + 1}`);
+            pageNum++;
         }
 
         await browser.close();
@@ -69,7 +82,7 @@ const scrapeImages = async (location, maxPages = 2) => {
 router.get('/scrape-images/:location', async (req, res) => {
     try {
         const { location } = req.params;
-        const maxPages = parseInt(req.query.pages, 2) || 2;  // Number of pages to scrape, default to 3
+        const maxPages = parseInt(req.query.pages, 10) || 3;  // Number of pages to scrape, default to 3
 
         console.log(`Scraping images for: ${location} up to page ${maxPages}`);
 
@@ -84,13 +97,13 @@ router.get('/scrape-images/:location', async (req, res) => {
 router.listen(port, () => {
     console.log(`Listening on port: ${port}`);
 });
-
 router.get('/', (req, res) => {
     res.json({
         message: "Backend Working RoomScanner"
     });
 });
 
+
 api.use("/api/", router)
 
-module.exports.handler = serverless(api);
+export const handler = serverless(api)

@@ -11,14 +11,16 @@ app.use(bodyParser.json());
 
 const port = process.env.PORT || 4000;
 
-const scrapeImages = async (location, maxPages = 1) => {
+const scrapeImages = async (location, maxPages = 3) => {
     const results = { images: [], prices: [], titles: [] };
 
     try {
         const browser = await puppeteer.launch({ headless: true });
         const page = await browser.newPage();
 
-        for (let pageNum = 1; pageNum <= maxPages; pageNum++) {
+        let pageNum = 1;
+
+        while (pageNum <= maxPages) {
             const searchURL = `https://www.spareroom.co.uk/flatshare/${location}/page${pageNum}`;
             console.log(`Scraping: ${searchURL}`);
             await page.goto(searchURL, { waitUntil: 'networkidle2' });
@@ -51,8 +53,19 @@ const scrapeImages = async (location, maxPages = 1) => {
                 results.titles.push(listing.title);
             });
 
-            // Optional: Log number of listings found on the current page
-            console.log(`Found ${data.length} listings on page ${pageNum}`);
+            // Check if the "Next" button exists on the page
+            const nextPageExists = await page.evaluate(() => {
+                const nextButton = document.querySelector('.paginate .nextLink');
+                return nextButton && !nextButton.classList.contains('disabled');
+            });
+
+            if (!nextPageExists) {
+                console.log('No more pages available.');
+                break; // Exit the loop if there's no next page
+            }
+
+            console.log(`Moving to page ${pageNum + 1}`);
+            pageNum++;
         }
 
         await browser.close();
@@ -66,7 +79,7 @@ const scrapeImages = async (location, maxPages = 1) => {
 app.get('/scrape-images/:location', async (req, res) => {
     try {
         const { location } = req.params;
-        const maxPages = parseInt(req.query.pages, 1) || 1;  // Number of pages to scrape, default to 3
+        const maxPages = parseInt(req.query.pages, 10) || 3;  // Number of pages to scrape, default to 3
 
         console.log(`Scraping images for: ${location} up to page ${maxPages}`);
 
