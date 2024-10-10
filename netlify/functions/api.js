@@ -4,11 +4,14 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import puppeteer from "puppeteer-core";
 import serverless from "serverless-http"
+import chromium from '@sparticuz/chromium'
 
 const api = express();
 
 api.use(cors());
 api.use(bodyParser.json());
+chromium.setHeadlessMode = true
+chromium.setGraphicsMode = false
 
 const port = process.env.PORT || 4000;
 
@@ -18,7 +21,11 @@ const scrapeImages = async (location, maxPages = 3) => {
     const results = { images: [], prices: [], titles: [] };
 
     try {
-        const browser = await puppeteer.launch({ headless: true });
+        const browser = await puppeteer.launch({  
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: process.env.CHROME_EXECUTABLE_PATH || (await chromium.executablePath('/var/task/node_modules/@sparticuz/chromium/bin')),
+        });
         const page = await browser.newPage();
 
         let pageNum = 1;
