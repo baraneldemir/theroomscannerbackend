@@ -1,9 +1,9 @@
-import "dotenv/config";
-import express, { Router } from "express";
-import cors from "cors";
-import bodyParser from "body-parser";
-import puppeteer from "puppeteer";
-import serverless from "serverless-http"
+const express = require('express');
+const Router = require('express');
+const cors = require('cors');
+const bodyParser = require('body-parser');
+const puppeteer = require('puppeteer');
+const serverless = require('serverless-http');
 
 const api = express();
 
