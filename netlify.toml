@@ -2,8 +2,9 @@
   functions = "netlify/functions"
   
 [functions]
-  external_node_modules = ["express","@sparticuz/chromium"]
   node_bundler = "esbuild"
+  external_node_modules = ["express"]
+
   
 [[redirects]]
   force = true
