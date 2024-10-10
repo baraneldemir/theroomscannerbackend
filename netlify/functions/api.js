@@ -80,20 +80,20 @@ const router = Router()
 // };
 
 
-router.get('/scrape-images/:location', async (req, res) => {
-    try {
-        // const { location } = req.params;
-        // const maxPages = parseInt(req.query.pages, 10) || 3;  // Number of pages to scrape, default to 3
+// router.get('/scrape-images/:location', async (req, res) => {
+//     try {
+//         // const { location } = req.params;
+//         // const maxPages = parseInt(req.query.pages, 10) || 3;  // Number of pages to scrape, default to 3
 
-        // console.log(`Scraping images for: ${location} up to page ${maxPages}`);
+//         // console.log(`Scraping images for: ${location} up to page ${maxPages}`);
 
-        // const data = await scrapeImages(location, maxPages);
-        // res.json(data);  // Send images, prices, and titles as JSON
-    } catch (error) {
-        console.error("Error scraping images:", error.message);
-        res.status(500).json({ error: "Failed to scrape images" });
-    }
-});
+//         // const data = await scrapeImages(location, maxPages);
+//         // res.json(data);  // Send images, prices, and titles as JSON
+//     } catch (error) {
+//         console.error("Error scraping images:", error.message);
+//         res.status(500).json({ error: "Failed to scrape images" });
+//     }
+// });
 
 
 router.get('/', (req, res) => {
