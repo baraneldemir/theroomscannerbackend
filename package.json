@@ -16,6 +16,7 @@
     "express": "^4.21.1",
     "node-fetch": "^3.3.2",
     "puppeteer": "^23.5.2",
+    "Router": "^2.1.0",
     "serverless-http": "^3.2.0"
   }
 }
