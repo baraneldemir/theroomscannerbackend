@@ -4,7 +4,6 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import puppeteer from "puppeteer-core";
 import serverless from "serverless-http";
-import chromium from '@sparticuz/chromium';
 
 const api = express();
 const router = Router();
@@ -16,15 +15,14 @@ const scrapeImages = async (location, maxPages = 3) => {
     const results = { images: [], prices: [], titles: [] };
 
     try {
-        const browser = await puppeteer.launch({  
+        const browser = await puppeteer.launch({
+            headless: true,
             args: [
-                ...chromium.args,
                 '--no-sandbox',
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
             ],
-            defaultViewport: chromium.defaultViewport,
-            executablePath: process.env.CHROME_EXECUTABLE_PATH || (await chromium.executablePath('/var/task/node_modules/@sparticuz/chromium/bin')),
+            executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // Ensure this path is correct
         });
 
         const page = await browser.newPage();
@@ -33,8 +31,8 @@ const scrapeImages = async (location, maxPages = 3) => {
         while (pageNum <= maxPages) {
             const searchURL = `https://www.spareroom.co.uk/flatshare/${location}/page${pageNum}`;
             console.log(`Scraping: ${searchURL}`);
-            await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 60000 });
-            await page.waitForSelector('figure img', { visible: true, timeout: 60000 });
+            await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 120000 });
+            await page.waitForSelector('figure img', { visible: true, timeout: 120000 });
 
             const data = await page.evaluate(() => {
                 const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
@@ -70,7 +68,7 @@ const scrapeImages = async (location, maxPages = 3) => {
         await browser.close();
         return results;
     } catch (error) {
-        console.error('Error scraping images:', error);
+        console.error('Error scraping images:', error); // More logging
         throw new Error('Failed to scrape images');
     }
 };
