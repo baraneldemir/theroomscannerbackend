@@ -2,7 +2,7 @@ import "dotenv/config";
 import express, { Router } from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
-import puppeteer from "puppeteer";
+// import puppeteer from "puppeteer";
 import serverless from "serverless-http"
 
 const api = express();
