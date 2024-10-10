@@ -20,12 +20,20 @@ const router = Router()
 const scrapeImages = async (location, maxPages = 3) => {
     const results = { images: [], prices: [], titles: [] };
 
-    try {
+    try {console.log('Chrome executable path:', process.env.CHROME_EXECUTABLE_PATH || (await chromium.executablePath('/var/task/node_modules/@sparticuz/chromium/bin')));
+
+        
         const browser = await puppeteer.launch({  
-            args: chromium.args,
+            args: [
+                ...chromium.args,
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+            ],
             defaultViewport: chromium.defaultViewport,
             executablePath: process.env.CHROME_EXECUTABLE_PATH || (await chromium.executablePath('/var/task/node_modules/@sparticuz/chromium/bin')),
         });
+        
         const page = await browser.newPage();
 
         let pageNum = 1;
@@ -33,10 +41,10 @@ const scrapeImages = async (location, maxPages = 3) => {
         while (pageNum <= maxPages) {
             const searchURL = `https://www.spareroom.co.uk/flatshare/${location}/page${pageNum}`;
             console.log(`Scraping: ${searchURL}`);
-            await page.goto(searchURL, { waitUntil: 'networkidle2' });
+            await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 60000 });
 
             // Wait for the listings to load
-            await page.waitForSelector('figure img', { visible: true });
+            await page.waitForSelector('figure img', { visible: true, timeout: 60000 });
 
             // Scrape data from the page
             const data = await page.evaluate(() => {
