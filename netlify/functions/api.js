@@ -1,32 +1,32 @@
+import "dotenv/config";
+import express, { Router } from "express";
+import cors from "cors";
+import bodyParser from "body-parser";
+import puppeteer from "puppeteer-core";
+// import serverless from "serverless-http";
+import chromium from '@sparticuz/chromium';
 
-const express = require("express");
-const { Router } = require("express");
-const cors = require("cors");
-const bodyParser = require("body-parser");
-const chromium = require('chrome-aws-lambda');
-const puppeteer = require("puppeteer-core");
-const serverless = require("serverless-http");
-
-const api = express();
-const router = Router();
+const app = express();
 
 api.use(cors());
 api.use(bodyParser.json());
+
+const port = process.env.PORT || 4000;
+
+const router = Router()
 
 const scrapeImages = async (location, maxPages = 3) => {
     const results = { images: [], prices: [], titles: [] };
 
     try {
-        const isLocal = !process.env.AWS_LAMBDA_FUNCTION_NAME;
-        const executablePath = isLocal
-            ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome'
-            : await chromium.executablePath;
-
         const browser = await puppeteer.launch({
             headless: true,
-            args: isLocal ? [] : chromium.args,
-            defaultViewport: chromium.defaultViewport,
-            executablePath: executablePath,
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+            ],
+            executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // Ensure this path is correct
         });
 
         const page = await browser.newPage();
@@ -63,7 +63,7 @@ const scrapeImages = async (location, maxPages = 3) => {
 
             if (!nextPageExists) {
                 console.log('No more pages available.');
-                break;
+                break; 
             }
 
             pageNum++;
@@ -72,25 +72,30 @@ const scrapeImages = async (location, maxPages = 3) => {
         await browser.close();
         return results;
     } catch (error) {
-        console.error('Error scraping images:', error);
+        console.error('Error scraping images:', error); // More logging
         throw new Error('Failed to scrape images');
     }
 };
 
+
 router.get('/scrape-images/:location', async (req, res) => {
     try {
         const { location } = req.params;
-        const maxPages = parseInt(req.query.pages, 10) || 3;
+        const maxPages = parseInt(req.query.pages, 10) || 3;  // Number of pages to scrape, default to 3
 
         console.log(`Scraping images for: ${location} up to page ${maxPages}`);
 
         const data = await scrapeImages(location, maxPages);
-        res.json(data);
+        res.json(data);  // Send images, prices, and titles as JSON
     } catch (error) {
         console.error("Error scraping images:", error.message);
         res.status(500).json({ error: "Failed to scrape images" });
     }
 });
+
+// router.listen(port, () => {
+//     console.log(`Listening on port: ${port}`);
+// });
 
 router.get('/', (req, res) => {
     res.json({
@@ -98,15 +103,6 @@ router.get('/', (req, res) => {
     });
 });
 
-api.use("/api/", router);
+api.use("/api/", router)
 
-// Check if running locally or serverless
-if (!process.env.AWS_LAMBDA_FUNCTION_NAME) {
-    // If not in AWS Lambda, run express locally
-    const port = process.env.PORT || 4000;
-    api.listen(port, () => {
-        console.log(`Listening on port ${port}`);
-    });
-}
-
-export const handler = serverless(api);
+export const handler = serverless(api)
