@@ -33,7 +33,7 @@ const scrapeImages = async (location) => {
             headless: true,
             args: chromium.args,
             defaultViewport: chromium.defaultViewport,
-            executablePath: await chromium.executablePath,
+            executablePath: await chromium.executablePath(),
         });
 
         const page = await browser.newPage();
