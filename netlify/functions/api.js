@@ -37,7 +37,8 @@ const scrapeImages = async (location) => {
                 '--disable-setuid-sandbox',
                 '--disable-dev-shm-usage',
                 '--disable-gpu',
-                '--window-size=1280,800'
+                '--window-size=1280,800',
+                '--disable-extensions'
             ],
             defaultViewport: chromium.defaultViewport,
             executablePath: await chromium.executablePath(),
@@ -48,21 +49,18 @@ const scrapeImages = async (location) => {
         });
 
         const page = await browser.newPage();
-        page.setDefaultNavigationTimeout(60000); // Set navigation timeout to 60 seconds
+        page.setDefaultNavigationTimeout(120000); // Increase timeout to 2 minutes
 
         const searchURL = `https://www.spareroom.co.uk/flatshare/${location}`;
         console.log(`Scraping: ${searchURL}`);
 
-        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36');
+        // Log any console messages from the page
+        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+        page.on('pageerror', error => console.log('PAGE ERROR:', error.message));
 
-        try {
-            await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 60000 });
-        } catch (gotoError) {
-            console.error('Error during navigation:', gotoError);
-            throw new Error(`Failed to navigate to the page: ${gotoError.message}`);
-        }
+        await gotoWithRetry(page, searchURL); // Use the retry function
 
-        await page.waitForSelector('figure img', { visible: true, timeout: 60000 });
+        await page.waitForSelector('figure img', { visible: true, timeout: 120000 });
 
         const data = await page.evaluate(() => {
             const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
@@ -95,6 +93,7 @@ const scrapeImages = async (location) => {
         throw new Error(`Failed to scrape images: ${error.message}`);
     }
 };
+
 
 
 // CORS preflight response for OPTIONS requests
