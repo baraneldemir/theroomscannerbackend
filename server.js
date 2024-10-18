@@ -7,7 +7,18 @@ import chromium from '@sparticuz/chromium';
 
 const app = express();
 
-app.use(cors());
+// Allow CORS for the frontend
+const allowedOrigins = ["https://theroomscanner.com"];  // Replace with your frontend URL
+app.use(cors({
+    origin: function (origin, callback) {
+        if (!origin || allowedOrigins.includes(origin)) {
+            callback(null, true);
+        } else {
+            callback(new Error('Not allowed by CORS'));
+        }
+    }
+}));
+
 app.use(bodyParser.json());
 
 const port = process.env.PORT || 4000;
@@ -35,20 +46,16 @@ const scrapeImages = async (location) => {
         const data = await page.evaluate(() => {
             const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
             const prices = Array.from(document.querySelectorAll('strong.listingPrice')).map(strong => strong.innerText.trim());
-            // const headers = Array.from(document.querySelectorAll('strong.listingPrice')).map(strong => strong.innerText.trim());
             const titles = Array.from(document.querySelectorAll('em.shortDescription')).map(em => em.childNodes[0].textContent.trim());
-            // const listingLocations = Array.from(document.querySelectorAll('span.listingLocation')).map(span => span.textContent.trim());
             const description = Array.from(document.querySelectorAll('p.description')).map(p => p.textContent.trim());
             const links = Array.from(document.querySelectorAll('a[data-detail-url]')).map(a => a.getAttribute('href'));
 
             return images.map((image, index) => ({
                 image,
-                description: description[index] || 'no listingLocations',
+                description: description[index] || 'no description',
                 price: prices[index] || 'N/A',
                 title: titles[index] || 'No Title',
                 link: links[index] || 'no link',
-                // headers: headers[index] || 'no headers',
-                // listingLocations: listingLocations[index] || 'no listingLocations'
             }));
         });
 
@@ -57,27 +64,27 @@ const scrapeImages = async (location) => {
             results.prices.push(listing.price);
             results.titles.push(listing.title);
             results.links.push(listing.link);
-            // results.headers.push(listing.headers);
             results.description.push(listing.description);
-            // results.listingLocations.push(listing.listingLocations);
         });
 
         await browser.close();
         return results;
     } catch (error) {
-        console.error('Error scraping images:', error); // More logging
+        console.error('Error scraping images:', error);
         throw new Error('Failed to scrape images');
     }
 };
 
+// CORS preflight response for OPTIONS requests
+app.options('/scrape-images/:location', cors());
+
 app.get('/scrape-images/:location', async (req, res) => {
     try {
         const { location } = req.params;
-
         console.log(`Scraping images for: ${location}`);
 
         const data = await scrapeImages(location);
-        res.json(data);  // Send images, prices, and titles as JSON
+        res.json(data);
     } catch (error) {
         console.error("Error scraping images:", error.message);
         res.status(500).json({ error: "Failed to scrape images" });
