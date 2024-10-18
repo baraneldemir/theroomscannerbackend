@@ -4,7 +4,7 @@ import cors from "cors";
 import bodyParser from "body-parser";
 import puppeteer from "puppeteer-core";
 import chromium from '@sparticuz/chromium';
-import serverless from "serverless-http"
+import serverless from "serverless-http";
 
 const api = express();
 
@@ -12,7 +12,7 @@ api.use(cors());
 api.use(bodyParser.json());
 
 // Allow CORS for the frontend
-const allowedOrigins = ["https://theroomscanner.com"];  // Replace with your frontend URL
+const allowedOrigins = ["https://theroomscanner.com"];
 api.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
@@ -23,10 +23,7 @@ api.use(cors({
     }
 }));
 
-
-const port = process.env.PORT || 4000;
-
-const router = Router()
+const router = Router();
 
 const scrapeImages = async (location) => {
     const results = { images: [], links: [], description: [], prices: [], titles: [] };
@@ -44,7 +41,7 @@ const scrapeImages = async (location) => {
 
         const searchURL = `https://www.spareroom.co.uk/flatshare/${location}`;
         console.log(`Scraping: ${searchURL}`);
-        
+
         await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 0 });
         await page.waitForSelector('figure img', { visible: true, timeout: 0 });
 
@@ -75,8 +72,8 @@ const scrapeImages = async (location) => {
         await browser.close();
         return results;
     } catch (error) {
-        console.error('Error scraping images:', error);
-        throw new Error('Failed to scrape images');
+        console.error('Error scraping images:', error); // Log the error details
+        throw new Error(`Failed to scrape images: ${error.message}`); // Throw the error message
     }
 };
 
@@ -92,20 +89,17 @@ router.get('/scrape-images/:location', async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error("Error scraping images:", error.message);
-        res.status(500).json({ error: "Failed to scrape images" });
+        res.status(500).json({ error: `Failed to scrape images: ${error.message}` }); // Return the error message
     }
 });
 
-api.listen(port, () => {
-    console.log(`Listening on port: ${port}`);
-});
-
+// Health check route
 router.get('/', (req, res) => {
     res.json({
         message: "Backend Working RoomScanner"
     });
 });
 
-api.use("/api/", router)
+api.use("/api/", router);
 
-export const handler = serverless(api)
+export const handler = serverless(api);
