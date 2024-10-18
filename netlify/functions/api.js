@@ -23,21 +23,21 @@ api.use(cors({
         }
     }
 }));
-const gotoWithRetry = async (page, url, retries = 3) => {
-    for (let i = 0; i < retries; i++) {
-        try {
-            await page.goto(url, { waitUntil: 'networkidle2', timeout: 120000 });
-            return;
-        } catch (error) {
-            console.error(`Attempt ${i + 1} failed:`, error);
-            if (i === retries - 1) throw error; // Rethrow on last attempt
-            await new Promise(resolve => setTimeout(resolve, 2000)); // Wait before retrying
-        }
-    }
-};
+// const gotoWithRetry = async (page, url, retries = 3) => {
+//     for (let i = 0; i < retries; i++) {
+//         try {
+//             await page.goto(url, { waitUntil: 'networkidle2', timeout: 120000 });
+//             return;
+//         } catch (error) {
+//             console.error(`Attempt ${i + 1} failed:`, error);
+//             if (i === retries - 1) throw error; // Rethrow on last attempt
+//             await new Promise(resolve => setTimeout(resolve, 2000)); // Wait before retrying
+//         }
+//     }
+// };
 
 // Use the retry function
-await gotoWithRetry(page, searchURL);
+// await gotoWithRetry(page, searchURL);
 
 const scrapeImages = async (location) => {
     const results = { images: [], links: [], description: [], prices: [], titles: [] };
@@ -72,7 +72,7 @@ const scrapeImages = async (location) => {
         page.on('console', msg => console.log('PAGE LOG:', msg.text()));
         page.on('pageerror', error => console.log('PAGE ERROR:', error.message));
 
-        await gotoWithRetry(page, searchURL); // Use the retry function
+        // await gotoWithRetry(page, searchURL); // Use the retry function
 
         await page.waitForSelector('figure img', { visible: true, timeout: 120000 });
 
