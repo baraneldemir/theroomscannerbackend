@@ -43,22 +43,27 @@ const scrapeImages = async (location) => {
             executablePath: await chromium.executablePath(),
         });
 
+        browser.on('disconnected', () => {
+            console.error('Browser disconnected');
+        });
+
         const page = await browser.newPage();
-        page.setDefaultNavigationTimeout(30000); // Set navigation timeout to 30 seconds
+        page.setDefaultNavigationTimeout(60000); // Set navigation timeout to 60 seconds
 
         const searchURL = `https://www.spareroom.co.uk/flatshare/${location}`;
         console.log(`Scraping: ${searchURL}`);
 
-        // Log any console messages from the page for debugging
-        page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/85.0.4183.121 Safari/537.36');
 
-        // Attempt to navigate to the search URL
-        await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 30000 });
+        try {
+            await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 60000 });
+        } catch (gotoError) {
+            console.error('Error during navigation:', gotoError);
+            throw new Error(`Failed to navigate to the page: ${gotoError.message}`);
+        }
 
-        // Wait for the images to load
-        await page.waitForSelector('figure img', { visible: true, timeout: 30000 });
+        await page.waitForSelector('figure img', { visible: true, timeout: 60000 });
 
-        // Scrape the required data
         const data = await page.evaluate(() => {
             const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
             const prices = Array.from(document.querySelectorAll('strong.listingPrice')).map(strong => strong.innerText.trim());
@@ -75,7 +80,6 @@ const scrapeImages = async (location) => {
             }));
         });
 
-        // Populate the results object with scraped data
         data.forEach(listing => {
             results.images.push(listing.image);
             results.prices.push(listing.price);
@@ -84,11 +88,11 @@ const scrapeImages = async (location) => {
             results.description.push(listing.description);
         });
 
-        await browser.close(); // Close the browser instance
-        return results; // Return the collected results
+        await browser.close();
+        return results;
     } catch (error) {
-        console.error('Error scraping images:', error); // Log error details
-        throw new Error(`Failed to scrape images: ${error.message}`); // Throw an error with the message
+        console.error('Error scraping images:', error); 
+        throw new Error(`Failed to scrape images: ${error.message}`);
     }
 };
 
