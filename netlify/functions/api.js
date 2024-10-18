@@ -13,7 +13,7 @@ api.use(bodyParser.json());
 
 // Allow CORS for the frontend
 const allowedOrigins = ["https://theroomscanner.com"];  // Replace with your frontend URL
-app.use(cors({
+api.use(cors({
     origin: function (origin, callback) {
         if (!origin || allowedOrigins.includes(origin)) {
             callback(null, true);
