@@ -72,7 +72,7 @@ const scrapeImages = async (location) => {
         page.on('console', msg => console.log('PAGE LOG:', msg.text()));
         page.on('pageerror', error => console.log('PAGE ERROR:', error.message));
 
-        // await gotoWithRetry(page, searchURL); // Use the retry function
+        await page.goto(searchURL, { waitUntil: 'networkidle2' });
 
         await page.waitForSelector('figure img', { visible: true, timeout: 120000 });
 
