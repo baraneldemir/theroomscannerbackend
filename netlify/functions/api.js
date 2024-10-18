@@ -31,20 +31,34 @@ const scrapeImages = async (location) => {
     try {
         const browser = await puppeteer.launch({
             headless: true,
-            args: chromium.args,
+            args: [
+                ...chromium.args,
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--window-size=1280,800'
+            ],
             defaultViewport: chromium.defaultViewport,
             executablePath: await chromium.executablePath(),
         });
 
         const page = await browser.newPage();
-        page.setDefaultNavigationTimeout(0);
+        page.setDefaultNavigationTimeout(30000); // Set navigation timeout to 30 seconds
 
         const searchURL = `https://www.spareroom.co.uk/flatshare/${location}`;
         console.log(`Scraping: ${searchURL}`);
 
-        await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 0 });
-        await page.waitForSelector('figure img', { visible: true, timeout: 0 });
+        // Log any console messages from the page for debugging
+        page.on('console', (msg) => console.log('PAGE LOG:', msg.text()));
 
+        // Attempt to navigate to the search URL
+        await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 30000 });
+
+        // Wait for the images to load
+        await page.waitForSelector('figure img', { visible: true, timeout: 30000 });
+
+        // Scrape the required data
         const data = await page.evaluate(() => {
             const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
             const prices = Array.from(document.querySelectorAll('strong.listingPrice')).map(strong => strong.innerText.trim());
@@ -54,13 +68,14 @@ const scrapeImages = async (location) => {
 
             return images.map((image, index) => ({
                 image,
-                description: description[index] || 'no description',
+                description: description[index] || 'No description',
                 price: prices[index] || 'N/A',
                 title: titles[index] || 'No Title',
-                link: links[index] || 'no link',
+                link: links[index] || 'No link',
             }));
         });
 
+        // Populate the results object with scraped data
         data.forEach(listing => {
             results.images.push(listing.image);
             results.prices.push(listing.price);
@@ -69,13 +84,14 @@ const scrapeImages = async (location) => {
             results.description.push(listing.description);
         });
 
-        await browser.close();
-        return results;
+        await browser.close(); // Close the browser instance
+        return results; // Return the collected results
     } catch (error) {
-        console.error('Error scraping images:', error); // Log the error details
-        throw new Error(`Failed to scrape images: ${error.message}`); // Throw the error message
+        console.error('Error scraping images:', error); // Log error details
+        throw new Error(`Failed to scrape images: ${error.message}`); // Throw an error with the message
     }
 };
+
 
 // CORS preflight response for OPTIONS requests
 router.options('/scrape-images/:location', cors());
