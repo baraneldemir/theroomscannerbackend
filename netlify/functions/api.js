@@ -96,7 +96,7 @@ router.get('/scrape-images/:location', async (req, res) => {
     }
 });
 
-router.listen(port, () => {
+api.listen(port, () => {
     console.log(`Listening on port: ${port}`);
 });
 
