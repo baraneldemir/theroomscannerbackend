@@ -7,6 +7,7 @@ import chromium from '@sparticuz/chromium';
 import serverless from "serverless-http";
 
 const api = express();
+const router = Router();
 
 api.use(cors());
 api.use(bodyParser.json());
@@ -23,7 +24,6 @@ api.use(cors({
     }
 }));
 
-const router = Router();
 
 const scrapeImages = async (location) => {
     const results = { images: [], links: [], description: [], prices: [], titles: [] };
@@ -118,7 +118,12 @@ router.get('/', (req, res) => {
         message: "Backend Working RoomScanner"
     });
 });
+api.use("/api", router);
 
-api.use("/api/", router);
+// Error handling for 404
+api.use((req, res) => {
+    res.status(404).send('Not Found');
+});
 
+// Export the handler for Netlify
 export const handler = serverless(api);
