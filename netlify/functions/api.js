@@ -55,6 +55,8 @@ const scrapeImages = async (location) => {
                 '--no-sandbox',
                 '--no-zygote',
                 '--deterministic-fetch',
+                '--single-process',
+                '--disable-software-rasterizer',
                 '--disable-features=IsolateOrigins',
                 '--disable-site-isolation-trials',
             ],
@@ -77,7 +79,7 @@ const scrapeImages = async (location) => {
         page.on('pageerror', error => console.error('PAGE ERROR:', error.message));
 
         // Navigate to the URL
-        await page.goto(searchURL, { waitUntil: 'networkidle2' });
+        await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 0 });
         console.log("Page loaded successfully");
 
         await page.waitForSelector('figure img', { visible: true, timeout: 120000 });
