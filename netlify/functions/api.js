@@ -41,9 +41,10 @@ api.use(cors({
 
 const scrapeImages = async (location) => {
     const results = { images: [] };
+    let browser;
 
     try {
-        const browser = await puppeteer.launch({
+        browser = await puppeteer.launch({
             headless: true,
             args: [
                 ...chromium.args,
@@ -62,54 +63,44 @@ const scrapeImages = async (location) => {
         });
 
         browser.on('disconnected', () => {
-            console.error('Browser disconnected');
+            console.error('Browser disconnected unexpectedly.');
         });
 
         const page = await browser.newPage();
-        page.setDefaultNavigationTimeout(120000); // Increase timeout to 2 minutes
+        page.setDefaultNavigationTimeout(120000); // Set timeout to 2 minutes
 
         const searchURL = `https://www.spareroom.co.uk/flatshare/${location}`;
         console.log(`Scraping: ${searchURL}`);
 
-        // Log any console messages from the page
+        // Log console messages and errors from the page
         page.on('console', msg => console.log('PAGE LOG:', msg.text()));
-        page.on('pageerror', error => console.log('PAGE ERROR:', error.message));
+        page.on('pageerror', error => console.error('PAGE ERROR:', error.message));
 
+        // Navigate to the URL
         await page.goto(searchURL, { waitUntil: 'networkidle2' });
+        console.log("Page loaded successfully");
 
         await page.waitForSelector('figure img', { visible: true, timeout: 120000 });
 
         const data = await page.evaluate(() => {
             const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
-            // const prices = Array.from(document.querySelectorAll('strong.listingPrice')).map(strong => strong.innerText.trim());
-            // const titles = Array.from(document.querySelectorAll('em.shortDescription')).map(em => em.childNodes[0].textContent.trim());
-            // const description = Array.from(document.querySelectorAll('p.description')).map(p => p.textContent.trim());
-            // const links = Array.from(document.querySelectorAll('a[data-detail-url]')).map(a => a.getAttribute('href'));
-
-            return images.map((image, index) => ({
-                image,
-                // description: description[index] || 'No description',
-                // price: prices[index] || 'N/A',
-                // title: titles[index] || 'No Title',
-                // link: links[index] || 'No link',
-            }));
+            return images.map(image => ({ image }));
         });
 
-        data.forEach(listing => {
-            results.images.push(listing.image);
-            // results.prices.push(listing.price);
-            // results.titles.push(listing.title);
-            // results.links.push(listing.link);
-            // results.description.push(listing.description);
-        });
-
-        await browser.close();
-        return results;
+        results.images.push(...data.map(listing => listing.image));
+        
     } catch (error) {
-        console.error('Error scraping images:', error); 
+        console.error('Error during scraping:', error.message);
         throw new Error(`Failed to scrape images: ${error.message}`);
+    } finally {
+        if (browser) {
+            await browser.close();
+        }
     }
+
+    return results;
 };
+
 
 
 
