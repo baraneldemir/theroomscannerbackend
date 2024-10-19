@@ -64,7 +64,7 @@ const scrapeImages = async (location) => {
         await browser.close();
         return results;
     } catch (error) {
-        console.error('Error scraping images:', error); // More logging
+        console.error('Error scraping images:', error);
         throw new Error('Failed to scrape images');
     }
 };
@@ -72,7 +72,7 @@ const scrapeImages = async (location) => {
 // Job tracking object
 let jobs = {};
 
-// Route for starting a scraping job
+// Route for starting a scraping job (with job tracking)
 app.get('/scrape-images/:location', async (req, res) => {
     const { location } = req.params;
     const jobId = Date.now();  // Simple job ID
