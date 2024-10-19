@@ -55,7 +55,7 @@ const scrapeImages = async (location) => {
                 '--no-sandbox',
                 '--no-zygote',
                 '--deterministic-fetch',
-                '--single-process',
+                // '--single-process',
                 '--disable-software-rasterizer',
                 '--disable-features=IsolateOrigins',
                 '--disable-site-isolation-trials',
