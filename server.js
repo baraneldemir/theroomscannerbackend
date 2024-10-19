@@ -70,82 +70,19 @@ const scrapeImages = async (location) => {
     }
 };
 
-// Job tracking object
-let jobs = {};
-
-// Route for starting a scraping job (with job tracking)
 app.get('/scrape-images/:location', async (req, res) => {
-    const { location } = req.params;
-    const jobId = Date.now();  // Simple job ID
-
-    // Save initial status
-    jobs[jobId] = { status: 'pending', result: null };
-
-    // Run the scraping task
-    scrapeImages(location).then(data => {
-        // Update job status and result when scraping completes
-        jobs[jobId].status = 'done';
-        jobs[jobId].result = data;
-    }).catch(error => {
-        // Handle errors and mark job as failed
-        jobs[jobId].status = 'failed';
-        jobs[jobId].result = error.message;
-    });
-
-    // Respond with jobId for tracking
-    res.json({ jobId });
-});
-
-// Route to check the status of a scraping job
-app.get('/job-status/:jobId', (req, res) => {
-    const { jobId } = req.params;
-    const job = jobs[jobId];
-
-    if (!job) {
-        return res.status(404).json({ error: 'Job not found' });
-    }
-
-    res.json({ status: job.status, result: job.result });
-});
-const handleFetch = async () => {
-    if (location.trim().length < 3) {
-        setError('Please enter a valid location (at least 3 characters).');
-        return;
-    }
-    
-    setLoading(true);
-    setError('');
-    
     try {
-        // Start the scraping job
-        const jobResponse = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/scrape-images/${location}`);
-        const jobId = jobResponse.data.jobId;
-        
-        // Polling function to check job status
-        const checkJobStatus = async () => {
-            const statusResponse = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/job-status/${jobId}`);
-            if (statusResponse.data.status === 'done') {
-                setImages(statusResponse.data.result.images);
-                setTitles(statusResponse.data.result.titles);
-                setHeaders(statusResponse.data.result.headers);
-                setPrices(statusResponse.data.result.prices);
-                setLinks(statusResponse.data.result.links);
-                setDescription(statusResponse.data.result.description);
-                clearInterval(polling); // Stop polling
-            } else if (statusResponse.data.status === 'failed') {
-                setError(statusResponse.data.result); // Set the error message
-                clearInterval(polling); // Stop polling
-            }
-        };
-        
-        const polling = setInterval(checkJobStatus, 1000); // Check every second
+        const { location } = req.params;
+
+        console.log(`Scraping headers for: ${location}`); 
+
+        const data = await scrapeImages(location); 
+        res.json(data);  
     } catch (error) {
-        console.error("Error fetching data:", error);
-        setError(error.response?.data?.error || 'Failed to load rooms :(');
-    } finally {
-        setLoading(false);
+        console.error("Error scraping images:", error.message);
+        res.status(500).json({ error: "Failed to scrape images" });
     }
-};
+});
 
 
 // Default route for basic health check
