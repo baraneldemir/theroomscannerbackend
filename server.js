@@ -30,8 +30,8 @@ const scrapeImages = async (location) => {
         const searchURL = `https://www.spareroom.co.uk/flatshare/${location}`;
         console.log(`Scraping: ${searchURL}`);
         
-        await page.goto(searchURL, { waitUntil: 'networkidle2', timeout: 0 });
-        await page.waitForSelector('figure img', { visible: true, timeout: 0 });
+        await page.goto(searchURL, { waitUntil: 'domcontentloaded', timeout: 30000 });
+        await page.waitForSelector('strong.listingPrice', { timeout: 10000 });
 
         const data = await page.evaluate(() => {
             const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
@@ -91,6 +91,6 @@ app.listen(port, () => {
 
 app.get('/', (req, res) => {
     res.json({
-        message: "Backend Working RoomScanner"
+        message: "Backend Working RoomScanner right?"
     });
 });
