@@ -21,7 +21,7 @@ const scrapeImages = async (location) => {
             headless: true,
             args: chromium.args,
             defaultViewport: chromium.defaultViewport,
-            executablePath: process.env.EXECUTABLE_PATH || (await chromium.executablePath()),
+            executablePath: process.env.CHROME_EXECUTABLE_PATH || (await chromium.executablePath()),
             ignoreHTTPSErrors: true,
         });
 
