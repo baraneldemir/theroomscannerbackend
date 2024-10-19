@@ -18,12 +18,10 @@ const scrapeImages = async (location) => {
     try {
         const browser = await puppeteer.launch({
             headless: true,
-            args: [
-                // '--no-sandbox',
-                // '--disable-setuid-sandbox',
-                // '--disable-dev-shm-usage',
-            ],
-            executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // Ensure this path is correct
+            args: chromium.args,
+            defaultViewport: chromium.defaultViewport,
+            executablePath: await chromium.executablePath(), // Ensure this path is correct
+            ignoreHTTPSErrors: true,
         });
 
         const page = await browser.newPage();
