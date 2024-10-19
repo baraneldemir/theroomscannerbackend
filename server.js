@@ -71,6 +71,41 @@ const scrapeImages = async (location) => {
     }
 };
 
+
+let jobs = {};
+
+app.get('/scrape-images/:location', async (req, res) => {
+    const { location } = req.params;
+    const jobId = Date.now();  // Simple job ID
+
+    // Save initial status
+    jobs[jobId] = { status: 'pending', result: null };
+
+    scrapeImages(location).then(data => {
+        // Update job status and result when scraping completes
+        jobs[jobId].status = 'done';
+        jobs[jobId].result = data;
+    }).catch(error => {
+        // Handle errors and mark job as failed
+        jobs[jobId].status = 'failed';
+        jobs[jobId].result = error.message;
+    });
+
+    res.json({ jobId });
+});
+
+app.get('/job-status/:jobId', (req, res) => {
+    const { jobId } = req.params;
+    const job = jobs[jobId];
+
+    if (!job) {
+        return res.status(404).json({ error: 'Job not found' });
+    }
+
+    res.json({ status: job.status, result: job.result });
+});
+
+
 app.get('/scrape-images/:location', async (req, res) => {
     try {
         const { location } = req.params;
