@@ -106,6 +106,46 @@ app.get('/job-status/:jobId', (req, res) => {
 
     res.json({ status: job.status, result: job.result });
 });
+const handleFetch = async () => {
+    if (location.trim().length < 3) {
+        setError('Please enter a valid location (at least 3 characters).');
+        return;
+    }
+    
+    setLoading(true);
+    setError('');
+    
+    try {
+        // Start the scraping job
+        const jobResponse = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/scrape-images/${location}`);
+        const jobId = jobResponse.data.jobId;
+        
+        // Polling function to check job status
+        const checkJobStatus = async () => {
+            const statusResponse = await axios.get(`${process.env.REACT_APP_BACKEND_URL}/job-status/${jobId}`);
+            if (statusResponse.data.status === 'done') {
+                setImages(statusResponse.data.result.images);
+                setTitles(statusResponse.data.result.titles);
+                setHeaders(statusResponse.data.result.headers);
+                setPrices(statusResponse.data.result.prices);
+                setLinks(statusResponse.data.result.links);
+                setDescription(statusResponse.data.result.description);
+                clearInterval(polling); // Stop polling
+            } else if (statusResponse.data.status === 'failed') {
+                setError(statusResponse.data.result); // Set the error message
+                clearInterval(polling); // Stop polling
+            }
+        };
+        
+        const polling = setInterval(checkJobStatus, 1000); // Check every second
+    } catch (error) {
+        console.error("Error fetching data:", error);
+        setError(error.response?.data?.error || 'Failed to load rooms :(');
+    } finally {
+        setLoading(false);
+    }
+};
+
 
 // Default route for basic health check
 app.get('/', (req, res) => {
