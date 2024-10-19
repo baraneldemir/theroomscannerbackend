@@ -12,6 +12,7 @@ app.use(bodyParser.json());
 
 const port = process.env.PORT || 4000;
 
+// Scraping function
 const scrapeImages = async (location) => {
     const results = { images: [], links: [], description: [], prices: [], titles: [], headers: [] };
 
@@ -38,7 +39,6 @@ const scrapeImages = async (location) => {
             const prices = Array.from(document.querySelectorAll('strong.listingPrice')).map(strong => strong.innerText.trim());
             const headers = Array.from(document.querySelectorAll('a[data-detail-url] h2')).map(h2 => h2.innerText.trim());
             const titles = Array.from(document.querySelectorAll('em.shortDescription')).map(em => em.childNodes[0].textContent.trim());
-            // const listingLocations = Array.from(document.querySelectorAll('span.listingLocation')).map(span => span.textContent.trim());
             const description = Array.from(document.querySelectorAll('p.description')).map(p => p.textContent.trim());
             const links = Array.from(document.querySelectorAll('a[data-detail-url]')).map(a => a.getAttribute('href'));
 
@@ -49,7 +49,6 @@ const scrapeImages = async (location) => {
                 title: titles[index] || 'No Title',
                 link: links[index] || 'no link',
                 headers: headers[index] || 'no headers',
-                // listingLocations: listingLocations[index] || 'no listingLocations'
             }));
         });
 
@@ -60,7 +59,6 @@ const scrapeImages = async (location) => {
             results.links.push(listing.link);
             results.headers.push(listing.headers);
             results.description.push(listing.description);
-            // results.listingLocations.push(listing.listingLocations);
         });
 
         await browser.close();
@@ -71,9 +69,10 @@ const scrapeImages = async (location) => {
     }
 };
 
-
+// Job tracking object
 let jobs = {};
 
+// Route for starting a scraping job
 app.get('/scrape-images/:location', async (req, res) => {
     const { location } = req.params;
     const jobId = Date.now();  // Simple job ID
@@ -81,6 +80,7 @@ app.get('/scrape-images/:location', async (req, res) => {
     // Save initial status
     jobs[jobId] = { status: 'pending', result: null };
 
+    // Run the scraping task
     scrapeImages(location).then(data => {
         // Update job status and result when scraping completes
         jobs[jobId].status = 'done';
@@ -91,9 +91,11 @@ app.get('/scrape-images/:location', async (req, res) => {
         jobs[jobId].result = error.message;
     });
 
+    // Respond with jobId for tracking
     res.json({ jobId });
 });
 
+// Route to check the status of a scraping job
 app.get('/job-status/:jobId', (req, res) => {
     const { jobId } = req.params;
     const job = jobs[jobId];
@@ -105,27 +107,14 @@ app.get('/job-status/:jobId', (req, res) => {
     res.json({ status: job.status, result: job.result });
 });
 
-
-app.get('/scrape-images/:location', async (req, res) => {
-    try {
-        const { location } = req.params;
-
-        console.log(`Scraping images for: ${location}`);
-
-        const data = await scrapeImages(location);
-        res.json(data);  // Send images, prices, and titles as JSON
-    } catch (error) {
-        console.error("Error scraping images:", error.message);
-        res.status(500).json({ error: "Failed to scrape images" });
-    }
-});
-
-app.listen(port, () => {
-    console.log(`Listening on port: ${port}`);
-});
-
+// Default route for basic health check
 app.get('/', (req, res) => {
     res.json({
         message: "Backend Working RoomScanner right?"
     });
+});
+
+// Start the server
+app.listen(port, () => {
+    console.log(`Listening on port: ${port}`);
 });
