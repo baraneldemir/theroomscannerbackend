@@ -14,7 +14,7 @@ const port = process.env.PORT || 4000;
 
 // Scraping function
 const scrapeImages = async (location) => {
-    const results = { images: [], links: [], description: [], prices: [], titles: [], headers: [] };
+    const results = { headers: [] };
 
     try {
         const browser = await puppeteer.launch({
@@ -32,33 +32,34 @@ const scrapeImages = async (location) => {
         console.log(`Scraping: ${searchURL}`);
         
         await page.goto(searchURL, { waitUntil: 'domcontentloaded', timeout: 30000 });
-        await page.waitForSelector('strong.listingPrice', { timeout: 10000 });
+        await page.waitForSelector('a[data-detail-url] h2', { timeout: 10000 });
 
         const data = await page.evaluate(() => {
-            const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
-            const prices = Array.from(document.querySelectorAll('strong.listingPrice')).map(strong => strong.innerText.trim());
+            // const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
+            // const prices = Array.from(document.querySelectorAll('strong.listingPrice')).map(strong => strong.innerText.trim());
             const headers = Array.from(document.querySelectorAll('a[data-detail-url] h2')).map(h2 => h2.innerText.trim());
-            const titles = Array.from(document.querySelectorAll('em.shortDescription')).map(em => em.childNodes[0].textContent.trim());
-            const description = Array.from(document.querySelectorAll('p.description')).map(p => p.textContent.trim());
-            const links = Array.from(document.querySelectorAll('a[data-detail-url]')).map(a => a.getAttribute('href'));
+            // const titles = Array.from(document.querySelectorAll('em.shortDescription')).map(em => em.childNodes[0].textContent.trim());
+            // const description = Array.from(document.querySelectorAll('p.description')).map(p => p.textContent.trim());
+            // const links = Array.from(document.querySelectorAll('a[data-detail-url]')).map(a => a.getAttribute('href'));
 
-            return images.map((image, index) => ({
-                image,
-                description: description[index] || 'no listingLocations',
-                price: prices[index] || 'N/A',
-                title: titles[index] || 'No Title',
-                link: links[index] || 'no link',
-                headers: headers[index] || 'no headers',
+            return headers.map((header, index) => ({
+                // image,
+                // description: description[index] || 'no listingLocations',
+                // price: prices[index] || 'N/A',
+                // title: titles[index] || 'No Title',
+                // link: links[index] || 'no link',
+                // headers: headers[index] || 'no headers',
+                header
             }));
         });
 
         data.forEach(listing => {
-            results.images.push(listing.image);
-            results.prices.push(listing.price);
-            results.titles.push(listing.title);
-            results.links.push(listing.link);
-            results.headers.push(listing.headers);
-            results.description.push(listing.description);
+            // results.images.push(listing.image);
+            // results.prices.push(listing.price);
+            // results.titles.push(listing.title);
+            // results.links.push(listing.link);
+            results.headers.push(listing.header);
+            // results.description.push(listing.description);
         });
 
         await browser.close();
