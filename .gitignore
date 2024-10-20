@@ -5,6 +5,10 @@
 /.pnp
 .pnp.js
 
+# personal
+.cache/
+npm-debug.log
+
 # testing
 /coverage
 
