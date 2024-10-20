@@ -10,13 +10,12 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
-    "@sparticuz/chromium": "^113.0.1",
     "body-parser": "^1.20.3",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.21.1",
     "heroku": "^9.3.1",
-    "puppeteer-core": "^23.6.0",
+    "puppeteer": "^23.6.0",
     "serverless-http": "^3.2.0"
   }
 }
