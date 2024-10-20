@@ -47,25 +47,36 @@ const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
     const pageUrl = `https://www.spareroom.co.uk/flatshare/${location}/page${page}`;
     const pageInstance = await browser.newPage();
     await pageInstance.goto(pageUrl);
-    await pageInstance.waitForSelector('figure img', { visible: true });
+    await Promise.all([
+        pageInstance.waitForSelector('figure img', { visible: true }),
+        pageInstance.waitForSelector('strong.listingPrice', { visible: true }),
+        pageInstance.waitForSelector('em.shortDescription', { visible: true }),
+        pageInstance.waitForSelector('a h2', { visible: true }),
+        pageInstance.waitForSelector('p.description', { visible: true }),
+        pageInstance.waitForSelector('a[data-detail-url]', { visible: true })
+    ]);
 
     const data = await pageInstance.evaluate(() => {
-        const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
-        const prices = Array.from(document.querySelectorAll('strong.listingPrice')).map(strong => strong.innerText.trim());
-        const titles = Array.from(document.querySelectorAll('em.shortDescription')).map(em => em.childNodes[0].textContent.trim());
-        const headers = Array.from(document.querySelectorAll('a h2')).map(h2 => h2.textContent.trim());
-        const descriptions = Array.from(document.querySelectorAll('p.description')).map(p => p.textContent.trim());
-        const links = Array.from(document.querySelectorAll('a[data-detail-url]')).map(a => `https://www.spareroom.co.uk${a.getAttribute('href')}`);
+        const listings = Array.from(document.querySelectorAll('.listing-result')).map(listing => {
+            const image = listing.querySelector('figure img') ? listing.querySelector('figure img').src : 'no image found';
+            const price = listing.querySelector('.listingPrice') ? listing.querySelector('.listingPrice').innerText.trim() : 'N/A';
+            const title = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Title';
+            const description = listing.querySelector('.description') ? listing.querySelector('.description').innerText.trim() : 'no description';
+            const link = listing.querySelector('a[data-detail-url]') ? `https://www.spareroom.co.uk${listing.querySelector('a[data-detail-url]').getAttribute('href')}` : 'no link';
+    
+            return {
+                image,
+                price,
+                title,
+                description,
+                link,
+            };
+        });
 
-        return images.map((image, index) => ({
-            image,
-            description: descriptions[index] || 'no description',
-            price: prices[index] || 'N/A',
-            title: titles[index] || 'No Title',
-            link: links[index] || 'no link',
-            header: headers[index] || 'no header',
-        }));
+    
+        return listings; // Return the complete listings array
     });
+    
 
     const listings = [];
 
@@ -104,9 +115,9 @@ const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
 app.get('/scrape-images/:location/:page?', async (req, res) => {
     try {
         const { location, page } = req.params;
-        const minPrice = parseFloat(req.query.minPrice); // Get minPrice from query params
-        const maxPrice = parseFloat(req.query.maxPrice); // Get maxPrice from query params
-        
+        const minPrice = parseFloat(req.query.minPrice);
+        const maxPrice = parseFloat(req.query.maxPrice);
+
         console.log(`Scraping images for: ${location} on page ${page || 1}`);
 
         const data = await scrapeImages(location, parseInt(page) || 1, minPrice, maxPrice);
