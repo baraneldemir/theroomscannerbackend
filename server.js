@@ -15,7 +15,12 @@ const port = process.env.PORT || 4000;
 const scrapeImages = async (location) => {
     const results = { images: [], prices: [], titles: [], headers: [], description: [], links: [] };
     const browser = await puppeteer.launch({
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage', // This helps with shared memory issues
+            '--disable-gpu',            // Disable GPU hardware acceleration          
+        ],
         headless: true,
     });
     const page = await browser.newPage()
