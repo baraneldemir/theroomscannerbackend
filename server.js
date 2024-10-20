@@ -3,6 +3,8 @@ import express from "express";
 import cors from "cors";
 import bodyParser from "body-parser";
 import puppeteer from "puppeteer";
+import mongoose from 'mongoose';
+import Search from "./search";
 
 const app = express();
 
@@ -11,8 +13,19 @@ app.use(bodyParser.json());
 
 const port = process.env.PORT || 4000;
 
+// Connect to MongoDB
+mongoose.connect(process.env.DATABASE_URL, { useNewUrlParser: true, useUnifiedTopology: true })
+    .then(() => console.log('MongoDB connected'))
+    .catch(err => console.error('MongoDB connection error:', err));
+
 // Scraping function
 const scrapeImages = async (location) => {
+    const existingScrapes = await Scrape.find({ location });
+
+    if (existingScrapes.length > 0) {
+        console.log(`Returning cached data from database for: ${location}`);
+        return existingScrapes;
+    }
     const results = { images: [], prices: [], titles: [], headers: [], description: [], links: [] };
     const browser = await puppeteer.launch({
         args: [
@@ -91,4 +104,8 @@ app.get('/', (req, res) => {
 // Start the server
 app.listen(port, () => {
     console.log(`Listening on port: ${port}`);
+});
+
+process.on('exit', () => {
+    mongoose.connection.close();
 });
