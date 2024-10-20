@@ -11,23 +11,20 @@ app.use(bodyParser.json());
 
 const port = process.env.PORT || 4000;
 
-// Scraping function with pagination
-const scrapeImages = async (location, pageNum = 1) => {
+// Scraping function
+const scrapeImages = async (location) => {
     const results = { images: [], prices: [], titles: [], headers: [], description: [], links: [] };
-
     const browser = await puppeteer.launch({
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
         headless: true,
     });
-    const page = await browser.newPage();
+    const page = await browser.newPage()
 
-    // Update the URL to reflect the page number
-    const url = `https://www.spareroom.co.uk/flatshare/${location}/page${pageNum}`;
-    await page.goto(url);
+    await page.goto(`https://www.spareroom.co.uk/flatshare/${location}`)
 
     await page.waitForSelector('figure img', {
         visible: true,
-    });
+    })
 
     const data = await page.evaluate(() => {
         const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
@@ -58,19 +55,17 @@ const scrapeImages = async (location, pageNum = 1) => {
         results.links.push(listing.link);
         results.description.push(listing.description);
     });
-
     await browser.close();
     return results;
 }
 
-// Route to scrape images with pagination
-app.get('/scrape-images/:location/page:page', async (req, res) => {
+app.get('/scrape-images/:location', async (req, res) => {
     try {
-        const { location, page } = req.params;
+        const { location } = req.params;
 
-        console.log(`Scraping images for: ${location} on page ${page}`);
+        console.log(`Scraping images for: ${location}`);
 
-        const data = await scrapeImages(location, parseInt(page, 10)); // Ensure page is an integer
+        const data = await scrapeImages(location);
         res.json(data);
     } catch (error) {
         console.error("Error scraping images:", error.message);
