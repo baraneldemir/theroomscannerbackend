@@ -13,7 +13,7 @@ const port = process.env.PORT || 4000;
 
 // Scraping function
 const scrapeImages = async (location) => {
-    const results = { images: [] };
+    const results = { images: [], prices: [], titles: [], headers: [], description: [], links: [] };
     const browser = await puppeteer.launch({
         args: ['--no-sandbox', '--disable-setuid-sandbox'],
         headless: true,
