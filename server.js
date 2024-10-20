@@ -47,15 +47,9 @@ const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
     const pageUrl = `https://www.spareroom.co.uk/flatshare/${location}/page${page}`;
     const pageInstance = await browser.newPage();
     await pageInstance.goto(pageUrl);
-    await Promise.all([
-        pageInstance.waitForSelector('figure img', { visible: true }),
-        pageInstance.waitForSelector('strong.listingPrice', { visible: true }),
-        pageInstance.waitForSelector('em.shortDescription', { visible: true }),
-        pageInstance.waitForSelector('a h2', { visible: true }),
-        pageInstance.waitForSelector('p.description', { visible: true }),
-        pageInstance.waitForSelector('a[data-detail-url]', { visible: true })
-    ]);
 
+    await pageInstance.waitForSelector('.listing-result figure img', { visible: true, timeout: 10000 }); // wait for at least one image to be visible
+    
     const data = await pageInstance.evaluate(() => {
         const listings = Array.from(document.querySelectorAll('.listing-result')).map(listing => {
             const image = listing.querySelector('figure img') ? listing.querySelector('figure img').src : 'no image found';
@@ -63,13 +57,14 @@ const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
             const title = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Title';
             const description = listing.querySelector('.description') ? listing.querySelector('.description').innerText.trim() : 'no description';
             const link = listing.querySelector('a[data-detail-url]') ? `https://www.spareroom.co.uk${listing.querySelector('a[data-detail-url]').getAttribute('href')}` : 'no link';
-    
+            const header = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Header'; // Corrected header extraction
             return {
                 image,
                 price,
                 title,
                 description,
                 link,
+                header
             };
         });
 
