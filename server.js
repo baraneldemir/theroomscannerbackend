@@ -19,11 +19,11 @@ mongoose.connect(process.env.DATABASE_URL, { useNewUrlParser: true, useUnifiedTo
     .catch(err => console.error('MongoDB connection error:', err));
 
 // Scraping function
-const scrapeImages = async (location) => {
-    const existingSearches = await Search.find({ location });
+const scrapeImages = async (location, page = 1) => {
+    const existingSearches = await Search.find({ location, page });
 
     if (existingSearches.length > 0) {
-        console.log(`Returning cached data from database for: ${location}`);
+        console.log(`Returning cached data from database for: ${location} on page ${page}`);
         return existingSearches;
     }
 
@@ -39,11 +39,12 @@ const scrapeImages = async (location) => {
         headless: true,
     });
 
-    const page = await browser.newPage();
-    await page.goto(`https://www.spareroom.co.uk/flatshare/${location}`);
-    await page.waitForSelector('figure img', { visible: true });
+    const pageUrl = `https://www.spareroom.co.uk/flatshare/${location}/page${page}`;
+    const pageInstance = await browser.newPage();
+    await pageInstance.goto(pageUrl);
+    await pageInstance.waitForSelector('figure img', { visible: true });
 
-    const data = await page.evaluate(() => {
+    const data = await pageInstance.evaluate(() => {
         const images = Array.from(document.querySelectorAll('figure img')).map(img => img.src);
         const prices = Array.from(document.querySelectorAll('strong.listingPrice')).map(strong => strong.innerText.trim());
         const titles = Array.from(document.querySelectorAll('em.shortDescription')).map(em => em.childNodes[0].textContent.trim());
@@ -72,13 +73,14 @@ const scrapeImages = async (location) => {
             header: listing.header,
             description: listing.description,
             link: listing.link,
-            scrapedAt: new Date() // Add scrapedAt timestamp
+            scrapedAt: new Date(),
+            page: page // Save the current page number
         });
 
         await searchEntry.save()
             .then(savedListing => {
                 console.log(`Saved listing for: ${listing.title}`);
-                listings.push(savedListing); // Store each saved listing in an array
+                listings.push(savedListing);
             })
             .catch(err => console.error(`Error saving listing: ${err.message}`));
     }
@@ -87,13 +89,13 @@ const scrapeImages = async (location) => {
     return listings; // Return array of saved listings
 };
 
-app.get('/scrape-images/:location', async (req, res) => {
+// Modify your route to accept page parameter
+app.get('/scrape-images/:location/:page?', async (req, res) => {
     try {
-        const { location } = req.params;
+        const { location, page } = req.params;
+        console.log(`Scraping images for: ${location} on page ${page || 1}`);
 
-        console.log(`Scraping images for: ${location}`);
-
-        const data = await scrapeImages(location);
+        const data = await scrapeImages(location, parseInt(page) || 1);
         res.json(data);
     } catch (error) {
         console.error("Error scraping images:", error.message);

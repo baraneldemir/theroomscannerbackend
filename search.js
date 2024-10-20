@@ -9,6 +9,7 @@ const searchSchema = new mongoose.Schema({
     description: { type: String },
     link: { type: String },
     scrapedAt: { type: Date, default: Date.now },
+    page: {type: Number}
 });
 
 const Search = mongoose.model('Search', searchSchema);
