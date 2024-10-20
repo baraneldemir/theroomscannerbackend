@@ -19,12 +19,17 @@ mongoose.connect(process.env.DATABASE_URL, { useNewUrlParser: true, useUnifiedTo
     .catch(err => console.error('MongoDB connection error:', err));
 
 // Scraping function
-const scrapeImages = async (location, page = 1) => {
+const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
     const existingSearches = await Search.find({ location, page });
 
     if (existingSearches.length > 0) {
         console.log(`Returning cached data from database for: ${location} on page ${page}`);
-        return existingSearches;
+        const filteredResults = existingSearches.filter(listing => {
+            const price = parseFloat(listing.price.replace(/[^0-9.]/g, ''));
+            return (!minPrice || price >= minPrice) && (!maxPrice || price <= maxPrice);
+        });
+
+        return filteredResults; // Return filtered cached data
     }
 
     const browser = await puppeteer.launch({
@@ -85,17 +90,26 @@ const scrapeImages = async (location, page = 1) => {
             .catch(err => console.error(`Error saving listing: ${err.message}`));
     }
 
+    const filteredResults = listings.filter(listing => {
+        const price = parseFloat(listing.price.replace(/[^0-9.]/g, ''));
+        return (!minPrice || price >= minPrice) && (!maxPrice || price <= maxPrice);
+    });
+
     await browser.close();
-    return listings; // Return array of saved listings
+
+    return filteredResults;
 };
 
 // Modify your route to accept page parameter
 app.get('/scrape-images/:location/:page?', async (req, res) => {
     try {
         const { location, page } = req.params;
+        const minPrice = parseFloat(req.query.minPrice); // Get minPrice from query params
+        const maxPrice = parseFloat(req.query.maxPrice); // Get maxPrice from query params
+        
         console.log(`Scraping images for: ${location} on page ${page || 1}`);
 
-        const data = await scrapeImages(location, parseInt(page) || 1);
+        const data = await scrapeImages(location, parseInt(page) || 1, minPrice, maxPrice);
         res.json(data);
     } catch (error) {
         console.error("Error scraping images:", error.message);
