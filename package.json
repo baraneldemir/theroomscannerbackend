@@ -4,8 +4,8 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "heroku-postbuild": "mkdir -p ./.cache && mv /app/.cache/puppeteer ./.cache"
+  "test": "echo \"Error: no test specified\" && exit 1",
+  "heroku-postbuild": "rm -rf ./.cache && mkdir -p ./.cache && mv /app/.cache/puppeteer/* ./.cache/"
   },
   "author": "baran eldemir",
   "license": "ISC",

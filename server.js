@@ -74,7 +74,7 @@ app.get('/scrape-images/:location', async (req, res) => {
         res.json(data);
     } catch (error) {
         console.error("Error scraping images:", error.message);
-        res.status(500).json({ error: "Failed to scrape images" });
+        res.status(500).json({ error: "Failed to load rooms" });
     }
 });
 
