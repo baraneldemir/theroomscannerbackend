@@ -5,7 +5,7 @@
   "main": "server.js",
   "scripts": {
   "test": "echo \"Error: no test specified\" && exit 1",
-  "heroku-postbuild": "rm -rf ./.cache && mkdir -p ./.cache && mv /app/.cache/puppeteer/* ./.cache/"
+  "heroku-postbuild": "bash postbuild.bash"
   },
   "author": "baran eldemir",
   "license": "ISC",
