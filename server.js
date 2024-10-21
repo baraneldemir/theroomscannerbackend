@@ -19,107 +19,116 @@ mongoose.connect(process.env.DATABASE_URL, { useNewUrlParser: true, useUnifiedTo
     .catch(err => console.error('MongoDB connection error:', err));
 
 // Scraping function
-const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
-    const existingSearches = await Search.find({ location, page });
+const scrapeImages = async (location, startPage = 1, minPrice, maxPrice) => {
+    let filteredResults = [];
+    let currentPage = startPage;
 
-    if (existingSearches.length > 0) {
-        console.log(`Returning cached data from database for: ${location} on page ${page}`);
-        const filteredResults = existingSearches.filter(listing => {
-            const price = parseFloat(listing.price.replace(/[^0-9.]/g, ''));
-            return (!minPrice || price >= minPrice) && (!maxPrice || price <= maxPrice);
-        });
+    while (filteredResults.length < 10) {
+        const existingSearches = await Search.find({ location, page: currentPage });
 
-        return filteredResults; // Return filtered cached data
-    }
+        if (existingSearches.length > 0) {
+            console.log(`Returning cached data from database for: ${location} on page ${currentPage}`);
+            const pageResults = existingSearches.filter(listing => {
+                const price = parseFloat(listing.price.replace(/[^0-9.]/g, ''));
+                return (!minPrice || price >= minPrice) && (!maxPrice || price <= maxPrice);
+            });
 
-    const browser = await puppeteer.launch({
-        args: [
-            '--no-sandbox',
-            '--disable-setuid-sandbox',
-            '--disable-dev-shm-usage',
-            '--disable-gpu',
-            '--single-process',
-            '--disable-software-rasterizer',
-        ],
-        headless: true,
-    });
+            filteredResults = filteredResults.concat(pageResults);
+        } else {
+            const browser = await puppeteer.launch({
+                args: [
+                    '--no-sandbox',
+                    '--disable-setuid-sandbox',
+                    '--disable-dev-shm-usage',
+                    '--disable-gpu',
+                    '--single-process',
+                    '--disable-software-rasterizer',
+                ],
+                headless: true,
+            });
 
-    const pageUrl = `https://www.spareroom.co.uk/flatshare/${location}/page${page}`;
-    const pageInstance = await browser.newPage();
-    await pageInstance.goto(pageUrl);
+            const pageUrl = `https://www.spareroom.co.uk/flatshare/${location}/page${currentPage}`;
+            const pageInstance = await browser.newPage();
+            await pageInstance.goto(pageUrl);
 
-    // await pageInstance.waitForSelector('.listing-result figure img', { visible: true }); // wait for at least one image to be visible
-
-    const data = await pageInstance.evaluate(() => {
-        const listings = Array.from(document.querySelectorAll('.listing-result')).map(listing => {
-            let image = 'no image found';
+            const data = await pageInstance.evaluate(() => {
+                const listings = Array.from(document.querySelectorAll('.listing-result')).map(listing => {
+                    let image = 'no image found';
+                    
+                    const videoContainer = listing.querySelector('.has-video');
+                    if (videoContainer) {
+                        image = videoContainer.style.backgroundImage.replace(/url\(["']?/, '').replace(/["']?\)$/, '');
+                    } else {
+                        const imgElement = listing.querySelector('figure img');
+                        if (imgElement) {
+                            image = imgElement.src;
+                        }
+                    }
             
-            // Check if a video is available
-            const videoContainer = listing.querySelector('.has-video');
-            if (videoContainer) {
-                // Extract the background image from the video container
-                image = videoContainer.style.backgroundImage.replace(/url\(["']?/, '').replace(/["']?\)$/, '');
-            } else {
-                // Extract the normal image if no video is found
-                const imgElement = listing.querySelector('figure img');
-                if (imgElement) {
-                    image = imgElement.src;
-                }
+                    const price = listing.querySelector('.listingPrice') ? listing.querySelector('.listingPrice').innerText.trim() : 'N/A';
+                    const title = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Title';
+                    const description = listing.querySelector('.description') ? listing.querySelector('.description').innerText.trim() : 'no description';
+                    const link = listing.querySelector('a[data-detail-url]') ? `https://www.spareroom.co.uk${listing.querySelector('a[data-detail-url]').getAttribute('href')}` : 'no link';
+                    const header = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Header';
+                    
+                    return {
+                        image,
+                        price,
+                        title,
+                        description,
+                        link,
+                        header
+                    };
+                });
+            
+                return listings;
+            });
+
+            const listings = [];
+
+            for (const listing of data) {
+                const searchEntry = new Search({
+                    location,
+                    image: listing.image,
+                    price: listing.price,
+                    title: listing.title,
+                    header: listing.header,
+                    description: listing.description,
+                    link: listing.link,
+                    scrapedAt: new Date(),
+                    page: currentPage
+                });
+
+                await searchEntry.save()
+                    .then(savedListing => {
+                        console.log(`Saved listing for: ${listing.title}`);
+                        listings.push(savedListing);
+                    })
+                    .catch(err => console.error(`Error saving listing: ${err.message}`));
             }
-    
-            const price = listing.querySelector('.listingPrice') ? listing.querySelector('.listingPrice').innerText.trim() : 'N/A';
-            const title = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Title';
-            const description = listing.querySelector('.description') ? listing.querySelector('.description').innerText.trim() : 'no description';
-            const link = listing.querySelector('a[data-detail-url]') ? `https://www.spareroom.co.uk${listing.querySelector('a[data-detail-url]').getAttribute('href')}` : 'no link';
-            const header = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Header'; // Corrected header extraction
-            
-            return {
-                image,
-                price,
-                title,
-                description,
-                link,
-                header
-            };
-        });
-    
-        return listings; // Return the complete listings array
-    });
-    
-    
 
-    const listings = [];
+            const pageResults = listings.filter(listing => {
+                const price = parseFloat(listing.price.replace(/[^0-9.]/g, ''));
+                return (!minPrice || price >= minPrice) && (!maxPrice || price <= maxPrice);
+            });
 
-    for (const listing of data) {
-        const searchEntry = new Search({
-            location,
-            image: listing.image,
-            price: listing.price,
-            title: listing.title,
-            header: listing.header,
-            description: listing.description,
-            link: listing.link,
-            scrapedAt: new Date(),
-            page: page // Save the current page number
-        });
+            await browser.close();
 
-        await searchEntry.save()
-            .then(savedListing => {
-                console.log(`Saved listing for: ${listing.title}`);
-                listings.push(savedListing);
-            })
-            .catch(err => console.error(`Error saving listing: ${err.message}`));
+            filteredResults = filteredResults.concat(pageResults);
+        }
+
+        // Stop if no more results were found on the current page
+        if (filteredResults.length < 10 && filteredResults.length % 10 === 0) {
+            console.log("No more results found.");
+            break;
+        }
+
+        currentPage++; // Move to the next page
     }
 
-    const filteredResults = listings.filter(listing => {
-        const price = parseFloat(listing.price.replace(/[^0-9.]/g, ''));
-        return (!minPrice || price >= minPrice) && (!maxPrice || price <= maxPrice);
-    });
-
-    await browser.close();
-
-    return filteredResults;
+    return filteredResults.slice(0, 10); // Return only the first 10 results
 };
+
 
 // Modify your route to accept page parameter
 app.get('/scrape-images/:location/:page?', async (req, res) => {
