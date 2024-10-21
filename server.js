@@ -48,16 +48,31 @@ const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
     const pageInstance = await browser.newPage();
     await pageInstance.goto(pageUrl);
 
-    await pageInstance.waitForSelector('.listing-result figure img', { visible: true, timeout: 10000 }); // wait for at least one image to be visible
-    
+    // await pageInstance.waitForSelector('.listing-result figure img', { visible: true }); // wait for at least one image to be visible
+
     const data = await pageInstance.evaluate(() => {
         const listings = Array.from(document.querySelectorAll('.listing-result')).map(listing => {
-            const image = listing.querySelector('figure img') ? listing.querySelector('figure img').src : 'no image found';
+            let image = 'no image found';
+            
+            // Check if a video is available
+            const videoContainer = listing.querySelector('.has-video');
+            if (videoContainer) {
+                // Extract the background image from the video container
+                image = videoContainer.style.backgroundImage.replace(/url\(["']?/, '').replace(/["']?\)$/, '');
+            } else {
+                // Extract the normal image if no video is found
+                const imgElement = listing.querySelector('figure img');
+                if (imgElement) {
+                    image = imgElement.src;
+                }
+            }
+    
             const price = listing.querySelector('.listingPrice') ? listing.querySelector('.listingPrice').innerText.trim() : 'N/A';
             const title = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Title';
             const description = listing.querySelector('.description') ? listing.querySelector('.description').innerText.trim() : 'no description';
             const link = listing.querySelector('a[data-detail-url]') ? `https://www.spareroom.co.uk${listing.querySelector('a[data-detail-url]').getAttribute('href')}` : 'no link';
             const header = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Header'; // Corrected header extraction
+            
             return {
                 image,
                 price,
@@ -67,10 +82,10 @@ const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
                 header
             };
         });
-
     
         return listings; // Return the complete listings array
     });
+    
     
 
     const listings = [];
