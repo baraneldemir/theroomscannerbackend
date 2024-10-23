@@ -71,7 +71,7 @@ const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
             const title = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Title';
             const description = listing.querySelector('.description') ? listing.querySelector('.description').innerText.trim() : 'no description';
             const link = listing.querySelector('a[data-detail-url]') ? `https://www.spareroom.co.uk${listing.querySelector('a[data-detail-url]').getAttribute('href')}` : 'no link';
-            const header = listing.querySelector('h2') ? listing.querySelector('h2').innerText.trim() : 'No Header'; // Corrected header extraction
+            const header = listing.querySelector('em') ? listing.querySelector('em').childNodes[0].textContent.trim() : 'No Header';
             
             return {
                 image,
