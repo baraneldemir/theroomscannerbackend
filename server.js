@@ -5,6 +5,7 @@ import bodyParser from "body-parser";
 import puppeteer from "puppeteer";
 import mongoose from 'mongoose';
 import Search from "./search.js";
+import Photo from "./photo.js";
 
 
 const app = express();
@@ -123,6 +124,23 @@ const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
 };
 
 const scrapePhotos = async (link) => {
+    // Check if the listing already exists in the database
+    const existingListing = await Search.findOne({ link });
+
+    if (!existingListing) {
+        console.error('No associated listing found for the link:', link);
+        return [];
+    }
+
+    // Check if photos already exist for this listing
+    const existingPhotos = await Photo.find({ roomId: existingListing._id });
+
+    if (existingPhotos.length > 0) {
+        console.log(`Returning cached photos for: ${link}`);
+        return existingPhotos; // Return the cached photos
+    }
+
+    // If no photos are found in the cache, proceed with scraping
     const browser = await puppeteer.launch({
         args: [
             '--no-sandbox',
@@ -141,7 +159,7 @@ const scrapePhotos = async (link) => {
     const photos = await pageInstance.evaluate(() => {
         const photoLinks = [];
         document.querySelectorAll('.photo-gallery__thumbnail-link').forEach(el => {
-            const photoUrl = el.getAttribute('href'); // Get the URL from href attribute
+            const photoUrl = el.getAttribute('href');
             if (photoUrl) {
                 photoLinks.push(photoUrl);
             }
@@ -150,19 +168,38 @@ const scrapePhotos = async (link) => {
     });
 
     await browser.close();
-    return photos;
-}
+
+    // Save each photo to the database
+    const savedPhotos = [];
+    for (const photoUrl of photos) {
+        const photoEntry = new Photo({
+            link, // The link where the image is scraped from
+            roomId: existingListing._id, // Reference to the Search model
+            photoUrl, // URL of the photo
+        });
+
+        await photoEntry.save()
+            .then(savedPhoto => {
+                console.log(`Saved photo for: ${link}`);
+                savedPhotos.push(savedPhoto);
+            })
+            .catch(err => console.error(`Error saving photo: ${err.message}`));
+    }
+
+    return savedPhotos; // Return the newly saved photos
+};
+
+
 
 app.get('/scrape-photos', async (req, res) => {
     try {
-        const link = req.query.link; // Get the link from query parameters
+        const link = req.query.link;
         if (!link) {
             return res.status(400).json({ error: "Link parameter is required" });
         }
         console.log(`Scraping photos for: ${link}`);
 
         const photos = await scrapePhotos(link);
-        console.log(photos);
         res.json(photos);
     } catch (error) {
         console.error("Error scraping photos:", error.message);
