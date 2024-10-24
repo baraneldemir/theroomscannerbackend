@@ -5,13 +5,9 @@ import bodyParser from "body-parser";
 import puppeteer from "puppeteer";
 import mongoose from 'mongoose';
 import Search from "./search.js";
-import path from 'path'
-import { dirname } from 'path';
-import { fileURLToPath } from 'url';
+
 
 const app = express();
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = dirname(__filename);
 
 app.use(cors());
 app.use(bodyParser.json());
@@ -202,11 +198,7 @@ app.get('/', (req, res) => {
     });
 });
 
-app.use(express.static(path.join(__dirname, 'build'))); // Use __dirname here
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'build', 'index.html')); // Use __dirname here
-});
 // Start the server
 app.listen(port, () => {
     console.log(`Listening on port: ${port}`);
