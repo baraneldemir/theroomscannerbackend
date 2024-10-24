@@ -121,6 +121,58 @@ const scrapeImages = async (location, page = 1, minPrice, maxPrice) => {
     return filteredResults;
 };
 
+const scrapePhotos = async (link) => {
+    const browser = await puppeteer.launch({
+        args: [
+            '--no-sandbox',
+            '--disable-setuid-sandbox',
+            '--disable-dev-shm-usage',
+            '--disable-gpu',
+            '--single-process',
+            '--disable-software-rasterizer',
+        ],
+        headless: true,
+    });
+
+    const pageInstance = await browser.newPage();
+    await pageInstance.goto(link);
+
+    const photos = await pageInstance.evaluate(() => {
+        const photoLinks = [];
+        document.querySelectorAll('.photo-gallery__thumbnail-link').forEach(el => {
+            const photoUrl = el.getAttribute('href'); // Get the URL from href attribute
+            if (photoUrl) {
+                photoLinks.push(photoUrl);
+            }
+        });
+        return photoLinks;
+    });
+
+    await browser.close();
+    return photos;
+}
+
+app.get('/scrape-photos', async (req, res) => {
+    try {
+        const link = req.query.link; // Get the link from query parameters
+        if (!link) {
+            return res.status(400).json({ error: "Link parameter is required" });
+        }
+        console.log(`Scraping photos for: ${link}`);
+
+        const photos = await scrapePhotos(link);
+        console.log(photos);
+        res.json(photos);
+    } catch (error) {
+        console.error("Error scraping photos:", error.message);
+        res.status(500).json({ error: "Failed to scrape photos" });
+    }
+});
+
+// scrapePhotos('https://www.spareroom.co.uk/flatshare/greater_manchester/salford/17536087')
+//     .then(photos => console.log(photos))
+//     .catch(err => console.error(err));
+
 // Modify your route to accept page parameter
 app.get('/scrape-images/:location/:page?', async (req, res) => {
     try {
